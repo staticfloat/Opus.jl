@@ -61,7 +61,7 @@ end
 """
 Packets go in, floating-point audio stream comes out
 """
-function decode_packets(dec::OpusDecoder, packets::Vector{Vector{UInt8}})
+function decode_all_packets(dec::OpusDecoder, packets::Vector{Vector{UInt8}})
     # Skip past header packets
     start_idx = 1
     while is_header_packet(packets[start_idx])
@@ -84,7 +84,33 @@ function decode_packets(dec::OpusDecoder, packets::Vector{Vector{UInt8}})
 
     # Return our hard-earned goodness, reshaping if we're stereo!
     if dec.channels > 1
-        return reshape(output, (dec.channels, div(length(output), dec.channels)))'
+        return reshape(output, (Int64(dec.channels), div(length(output), dec.channels)))'
     end
     return output''
+end
+
+"""
+Returns (audio, fs) unless the ogg file has no opus streams
+"""
+function load(file_path::Union{File{format"OPUS"},AbstractString})
+    ogg_dec = Ogg.OggDecoder()
+    audio = nothing
+    open(file_path) do fio
+        packets = Ogg.decode_all_packets(ogg_dec, fio)
+        for serial in keys(packets)
+            # Find the first stream that is Opus and decode it
+            try
+                opus_head = OpusHead(packets[serial][1])
+                opus_tags = OpusTags(packets[serial][2])
+                dec = Opus.OpusDecoder(48000, opus_head.channels)
+                audio = decode_all_packets(dec, packets[serial])
+                break
+            end
+        end
+    end
+
+    if audio == nothing
+        error("Could not find any Opus streams in $(file_path)")
+    end
+    return audio, 48000
 end

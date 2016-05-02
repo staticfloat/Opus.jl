@@ -1,6 +1,7 @@
 module Opus
 using Compat
 using Ogg
+using FileIO
 
 const depfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(depfile)

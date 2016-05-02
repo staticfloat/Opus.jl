@@ -17,7 +17,7 @@ serial = 1035355421
 
 # Build a decoder for it
 opus_dec = Opus.OpusDecoder(48000,1)
-audio = Opus.decode_packets(opus_dec, ogg_dec.packets[serial])
+audio = Opus.decode_all_packets(opus_dec, ogg_dec.packets[serial])
 
 # Make sure we get as many samples as we expected (note that there is some padding
 # done by libopus during encoding due to the extremely short input length)
