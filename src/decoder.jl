@@ -92,20 +92,18 @@ end
 """
 Returns (audio, fs) unless the ogg file has no opus streams
 """
-function load(file_path::Union{File{format"OPUS"},AbstractString})
-    ogg_dec = Ogg.OggDecoder()
+function load(fio::IO)
     audio = nothing
-    open(file_path) do fio
-        packets = Ogg.decode_all_packets(ogg_dec, fio)
-        for serial in keys(packets)
-            # Find the first stream that is Opus and decode it
-            try
-                opus_head = OpusHead(packets[serial][1])
-                opus_tags = OpusTags(packets[serial][2])
-                dec = Opus.OpusDecoder(48000, opus_head.channels)
-                audio = decode_all_packets(dec, packets[serial])
-                break
-            end
+    ogg_dec = Ogg.OggDecoder()
+    packets = Ogg.decode_all_packets(ogg_dec, fio)
+    for serial in keys(packets)
+        # Find the first stream that is Opus and decode it
+        try
+            opus_head = OpusHead(packets[serial][1])
+            opus_tags = OpusTags(packets[serial][2])
+            dec = Opus.OpusDecoder(48000, opus_head.channels)
+            audio = decode_all_packets(dec, packets[serial])
+            break
         end
     end
 
@@ -113,4 +111,10 @@ function load(file_path::Union{File{format"OPUS"},AbstractString})
         error("Could not find any Opus streams in $(file_path)")
     end
     return audio, 48000
+end
+
+function load(file_path::Union{File{format"OPUS"},AbstractString})
+    open(file_path) do fio
+        return load(fio)
+    end
 end

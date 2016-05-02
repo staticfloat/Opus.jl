@@ -74,7 +74,7 @@ function encode(enc::OpusEncoder, audio::Array{Float32}; chunksize=960)
     return packets
 end
 
-function save(file_path::Union{File{format"OPUS"},AbstractString}, audio::Array{Float32}, fs; chunksize=960)
+function save(output::Union{File{format"OPUS"},AbstractString,IO}, audio::Array{Float32}, fs; chunksize=960)
     # Encode the audio into packets
     enc = OpusEncoder(fs, size(audio, 2))
     packets = encode(enc, audio; chunksize=chunksize)
@@ -87,9 +87,9 @@ function save(file_path::Union{File{format"OPUS"},AbstractString}, audio::Array{
     insert!(packets, 1, opus_head)
     opus_tags = OpusTags()
     insert!(packets, 2, opus_tags)
-    Ogg.save(file_path, packets, granulepos)
+    Ogg.save(output, packets, granulepos)
 end
 
-function save(file_path::Union{File{format"OPUS"},AbstractString}, audio::Array, fs; chunksize=960)
-    return save(file_path, map(Float32, audio), fs, chunksize=chunksize)
+function save(output::Union{File{format"OPUS"},AbstractString,IO}, audio::Array, fs; chunksize=960)
+    return save(output, map(Float32, audio), fs, chunksize=chunksize)
 end
