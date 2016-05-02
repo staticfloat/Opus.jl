@@ -132,6 +132,8 @@ function convert(::Type{Vector{UInt8}}, x::OpusTags)
     data[13:12+length(x.vendor_string)] = x.vendor_string.data
 
     offset = 13 + length(x.vendor_string)
+    data[offset:offset+3] = reinterpret(UInt8, [UInt32(length(x.tags))])
+    offset += 4
     for tagidx = 1:length(x.tags)
         taglen = UInt32(len(x.tags[tagidx]))
         data[offset:offset+3] = reinterpret(UInt8, [taglen])

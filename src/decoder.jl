@@ -108,7 +108,7 @@ function load(fio::IO)
     end
 
     if audio == nothing
-        error("Could not find any Opus streams in $(file_path)")
+        error("Could not find any Opus streams!")
     end
     return audio, 48000
 end

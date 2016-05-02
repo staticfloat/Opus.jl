@@ -80,7 +80,7 @@ function save(output::Union{File{format"OPUS"},AbstractString,IO}, audio::Array{
     packets = encode(enc, audio; chunksize=chunksize)
 
     # Calculate granule positions for each packet
-    granulepos = vcat(0, 0, collect(1:length(packets))*chunksize)
+    granulepos = vcat(0, 0, collect(1:length(packets))*div(chunksize,2))
 
     # Save it out into an Ogg file with an OpusHead and OpusTags
     opus_head = OpusHead(fs, size(audio, 2))
