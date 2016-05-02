@@ -36,7 +36,7 @@ immutable OpusHead
     # output when starting playback, and also the number to subtract from a
     # page's granule position to calculate its PCM sample position.
     # NOTE: This is currently completely ignored in Opus.jl
-    pre_skip::UInt16
+    preskip::UInt16
     # Samplerate of input stream (Let's face it, it's always 48 KHz)
     samplerate::UInt32
     # Output gain that should be applied
@@ -45,8 +45,8 @@ immutable OpusHead
     channel_map_family::UInt8
 end
 
-OpusHead() = OpusHead(0x646165487375704f, 1, 0, 0, 0, 0, 0, 0, 0)
-OpusHead(samplerate, channels) = OpusHead(0x646165487375704f, 1, channels, 0, samplerate, 0, 0)
+OpusHead() = OpusHead(0x646165487375704f, 1, 1, 120, 48000, 0, 0)
+OpusHead(samplerate, channels) = OpusHead(0x646165487375704f, 1, channels, 120, samplerate, 0, 0)
 function OpusHead(data::Vector{UInt8})
     if length(data) < 19
         error("Input data too short: OpusHead structures are at least 19 bytes long!")
@@ -58,11 +58,11 @@ function OpusHead(data::Vector{UInt8})
     end
     version = data[9]
     channels = data[10]
-    pre_skip = reinterpret(UInt16, data[11:12])[1]
+    preskip = reinterpret(UInt16, data[11:12])[1]
     samplerate = reinterpret(UInt32, data[13:16])[1]
     output_gain = reinterpret(UInt16, data[17:18])[1]
     channel_map_family = data[19]
-    return OpusHead( magic, version, channels, pre_skip, samplerate, output_gain, channel_map_family)
+    return OpusHead( magic, version, channels, preskip, samplerate, output_gain, channel_map_family)
 end
 
 function convert(::Type{Vector{UInt8}}, x::OpusHead)
@@ -70,7 +70,7 @@ function convert(::Type{Vector{UInt8}}, x::OpusHead)
     data[1:8] = reinterpret(UInt8, [x.opus_head])
     data[9] = x.version
     data[10] = x.channels
-    data[11:12] = reinterpret(UInt8, [x.pre_skip])
+    data[11:12] = reinterpret(UInt8, [x.preskip])
     data[13:16] = reinterpret(UInt8, [x.samplerate])
     data[17:18] = reinterpret(UInt8, [x.output_gain])
     data[19] = x.channel_map_family
