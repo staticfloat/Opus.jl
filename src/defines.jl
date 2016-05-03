@@ -45,8 +45,8 @@ immutable OpusHead
     channel_map_family::UInt8
 end
 
-OpusHead() = OpusHead(0x646165487375704f, 1, 1, 120, 48000, 0, 0)
-OpusHead(samplerate, channels) = OpusHead(0x646165487375704f, 1, channels, 120, samplerate, 0, 0)
+OpusHead() = OpusHead(0x646165487375704f, 1, 1, 312, 48000, 0, 0)
+OpusHead(samplerate, channels) = OpusHead(0x646165487375704f, 1, channels, 312, samplerate, 0, 0)
 function OpusHead(data::Vector{UInt8})
     if length(data) < 19
         error("Input data too short: OpusHead structures are at least 19 bytes long!")
@@ -89,7 +89,7 @@ type OpusTags
     vendor_string::AbstractString
     tags::Vector{AbstractString}
 end
-OpusTags() = OpusTags(0x736761547375704f, "Opus.jl", Vector{AbstractString}())
+OpusTags() = OpusTags(0x736761547375704f, "Opus.jl", AbstractString["encoder=Opus.jl"])
 
 function read_opus_tag(data::Vector{UInt8}, offset = 1)
     # First, read in a length
@@ -135,7 +135,7 @@ function convert(::Type{Vector{UInt8}}, x::OpusTags)
     data[offset:offset+3] = reinterpret(UInt8, [UInt32(length(x.tags))])
     offset += 4
     for tagidx = 1:length(x.tags)
-        taglen = UInt32(len(x.tags[tagidx]))
+        taglen = UInt32(length(x.tags[tagidx]))
         data[offset:offset+3] = reinterpret(UInt8, [taglen])
         data[offset+4:offset+3 + taglen] = x.tags[tagidx].data
         offset += 4 + taglen
@@ -151,4 +151,17 @@ function show(io::IO, x::OpusTags)
         write(io, "\n")
         write(io, "    $tag")
     end
+end
+
+
+function is_header_packet(packet::Vector{UInt8})
+    # Check if it's an OpusHead or OpusTags packet
+    if length(packet) > 8
+        magic = bytestring(packet[1:8])
+        if magic == "OpusHead" || magic == "OpusTags"
+            return true
+        end
+    end
+
+    return false
 end

@@ -33,18 +33,6 @@ function get_nb_samples(data, fs)
     return num_samples
 end
 
-function is_header_packet(packet::Vector{UInt8})
-    # Check if it's an OpusHead or OpusTags packet
-    if length(packet) > 8
-        magic = bytestring(packet[1:8])
-        if magic == "OpusHead" || magic == "OpusTags"
-            return true
-        end
-    end
-
-    return false
-end
-
 function decode_packet(dec::OpusDecoder, packet::Vector{UInt8})
     packet_samples = get_nb_samples(packet, dec.fs)
     output = Vector{Float32}(packet_samples*dec.channels)

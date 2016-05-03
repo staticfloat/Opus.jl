@@ -30,7 +30,7 @@ function encode_frame(enc::OpusEncoder, data::Vector{Float32})
     if !(frame_len in [120, 240, 480, 960, 1920, 2880])
         error("Invalid frame length of $(length(data)/enc.channels) samples")
     end
-    packet = Vector{UInt8}(length(data)*4)
+    packet = Vector{UInt8}(length(data)*4*enc.channels)
 
     #print("opus_encode_float: ")
     num_bytes = ccall((:opus_encode_float,libopus), Cint, (Ptr{Void}, Ptr{Float32}, Cint, Ptr{UInt8}, Int32),
@@ -59,7 +59,6 @@ function encode(enc::OpusEncoder, audio::Array{Float32}; chunksize=960)
     for chunk_idx in 1:div(length(audio),enc.channels*chunksize)
         chunk = audio[(chunk_idx-1)*chunksize*enc.channels + 1:chunk_idx*chunksize*enc.channels]
         encoded_chunk = encode_frame(enc, chunk)
-        #println("Mapping chunk $(chunk_idx) (std dev: $(std(chunk))) to $(length(encoded_chunk)) bytes")
         push!(packets, encoded_chunk)
     end
 
@@ -79,7 +78,9 @@ function save(output::Union{File{format"OPUS"},AbstractString,IO}, audio::Array{
     enc = OpusEncoder(fs, size(audio, 2))
     packets = encode(enc, audio; chunksize=chunksize)
 
-    # Calculate granule positions for each packet
+    # Calculate granule positions for each packet.  We mark the first two packets as
+    # "header packets" by setting their granulepos to zero, which forces them into
+    # their own ogg pages
     granulepos = vcat(0, 0, collect(1:length(packets))*div(chunksize,enc.channels))
 
     # Save it out into an Ogg file with an OpusHead and OpusTags
