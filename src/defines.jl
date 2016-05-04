@@ -1,5 +1,3 @@
-import Base: convert, show
-
 # Opus error codes
 const OPUS_OK               =  0
 const OPUS_BAD_ARG          = -1
@@ -47,34 +45,37 @@ end
 
 OpusHead() = OpusHead(0x646165487375704f, 1, 1, 312, 48000, 0, 0)
 OpusHead(samplerate, channels) = OpusHead(0x646165487375704f, 1, channels, 312, samplerate, 0, 0)
-function OpusHead(data::Vector{UInt8})
-    if length(data) < 19
-        error("Input data too short: OpusHead structures are at least 19 bytes long!")
-    end
 
-    magic = reinterpret(UInt64, data[1:8])[1]
+function OpusHead(io::IO)
+    magic = read(io, UInt64)
     if magic != 0x646165487375704f
         error("Input packet is not an OpusHead!, magic is $(magic)")
     end
-    version = data[9]
-    channels = data[10]
-    preskip = reinterpret(UInt16, data[11:12])[1]
-    samplerate = reinterpret(UInt32, data[13:16])[1]
-    output_gain = reinterpret(UInt16, data[17:18])[1]
-    channel_map_family = data[19]
+    version = read(io, UInt8)
+    channels = read(io, UInt8)
+    preskip = read(io, UInt16)
+    samplerate = read(io, UInt32)
+    output_gain = read(io, UInt16)
+    channel_map_family = read(io, UInt8)
     return OpusHead( magic, version, channels, preskip, samplerate, output_gain, channel_map_family)
+end
+OpusHead(data::Vector{UInt8}) = OpusHead(IOBuffer(data))
+
+function write(io::IO, x::OpusHead)
+    write(io, x.opus_head)
+    write(io, x.version)
+    write(io, x.channels)
+    write(io, x.preskip)
+    write(io, x.samplerate)
+    write(io, x.output_gain)
+    write(io, x.channel_map_family)
 end
 
 function convert(::Type{Vector{UInt8}}, x::OpusHead)
-    data = Vector{UInt8}(19)
-    data[1:8] = reinterpret(UInt8, [x.opus_head])
-    data[9] = x.version
-    data[10] = x.channels
-    data[11:12] = reinterpret(UInt8, [x.preskip])
-    data[13:16] = reinterpret(UInt8, [x.samplerate])
-    data[17:18] = reinterpret(UInt8, [x.output_gain])
-    data[19] = x.channel_map_family
-    return data
+    io = IOBuffer()
+    write(io, x)
+    seekstart(io)
+    return readbytes(io)
 end
 
 function show(io::IO, x::OpusHead)
@@ -91,56 +92,55 @@ type OpusTags
 end
 OpusTags() = OpusTags(0x736761547375704f, "Opus.jl", AbstractString["encoder=Opus.jl"])
 
-function read_opus_tag(data::Vector{UInt8}, offset = 1)
+function read_opus_tag(io::IO)
     # First, read in a length
-    len = reinterpret(UInt32, data[offset:offset + 3])[1]
-    # Next, read the string
-    str = bytestring(data[offset + 4:offset+3+len])
+    len = read(io, UInt32)
 
-    # offset is how many bytes we need to shift data over for our next tag
-    offset += 4 + len
-    return str, offset
+    # Next, read the string
+    return bytestring(readbytes(io, len))
 end
 
-function OpusTags(data::Vector{UInt8})
-    magic = reinterpret(UInt64, data[1:8])[1]
+function write_opus_tag(io::IO, tag::AbstractString)
+    # First, write out the length
+    write(io, UInt32(length(tag)))
+
+    # Next, write out the tag itself
+    write(io, tag)
+end
+
+function OpusTags(io::IO)
+    magic = read(io, UInt64)
     if magic != 0x736761547375704f
         error("Input packet is not an OpusTags!, magic is $(magic)")
     end
     # First, read the vendor string
-    vendor_string, offset = read_opus_tag(data, 9)
+    vendor_string = read_opus_tag(io)
 
     # Next, read how many tags we've got
-    num_tags = reinterpret(UInt32, data[offset:offset + 3])[1]
-    offset += 4
+    num_tags = read(io, UInt32)
 
-    tags = Vector{AbstractString}(num_tags)
-    for idx in 1:num_tags
-        tag, offset = read_opus_tag(data, offset)
-        tags[idx] = tag
-    end
+    # Read all the tags in, one after another
+    tags = [read_opus_tag(io) for idx in 1:num_tags]
 
     return OpusTags(magic, vendor_string, tags)
 end
+OpusTags(data::Vector{UInt8}) = OpusTags(IOBuffer(data))
+
+function write(io::IO, x::OpusTags)
+    write(io, x.opus_tags)
+    write_opus_tag(io, x.vendor_string)
+
+    write(io, UInt32(length(x.tags)))
+    for tagidx = 1:length(x.tags)
+        write_opus_tag(io, x.tags[tagidx])
+    end
+end
 
 function convert(::Type{Vector{UInt8}}, x::OpusTags)
-    total_len = 8 + 4 + length(x.vendor_string) +
-                4 + 4*length(x.tags) + sum(Int64[length(z) for z in x.tags])
-    data = Vector{UInt8}(total_len)
-    data[1:8] = reinterpret(UInt8, [x.opus_tags])
-    data[9:12] = reinterpret(UInt8, [UInt32(length(x.vendor_string))])
-    data[13:12+length(x.vendor_string)] = x.vendor_string.data
-
-    offset = 13 + length(x.vendor_string)
-    data[offset:offset+3] = reinterpret(UInt8, [UInt32(length(x.tags))])
-    offset += 4
-    for tagidx = 1:length(x.tags)
-        taglen = UInt32(length(x.tags[tagidx]))
-        data[offset:offset+3] = reinterpret(UInt8, [taglen])
-        data[offset+4:offset+3 + taglen] = x.tags[tagidx].data
-        offset += 4 + taglen
-    end
-    return data
+    io = IOBuffer()
+    write(io, x)
+    seekstart(io)
+    return readbytes(io)
 end
 
 function show(io::IO, x::OpusTags)
