@@ -82,17 +82,20 @@ Returns (audio, fs) unless the ogg file has no opus streams
 """
 function load(fio::IO)
     audio = nothing
-    ogg_dec = Ogg.OggDecoder()
-    packets = Ogg.decode_all_packets(ogg_dec, fio)
+    packets = Ogg.load(fio)
     for serial in keys(packets)
-        # Find the first stream that is Opus and decode it
+        opus_head = OpusHead()
+        opus_tags = OpusTags()
         try
+            # Find the first stream that is Opus and decode it
             opus_head = OpusHead(packets[serial][1])
             opus_tags = OpusTags(packets[serial][2])
-            dec = Opus.OpusDecoder(48000, opus_head.channels)
-            audio = decode_all_packets(dec, packets[serial])
-            break
+        catch
+            continue
         end
+        dec = Opus.OpusDecoder(48000, opus_head.channels)
+        audio = decode_all_packets(dec, packets[serial])
+        break
     end
 
     if audio == nothing

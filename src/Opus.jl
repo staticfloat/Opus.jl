@@ -1,7 +1,10 @@
+__precompile__()
 module Opus
 using Compat
 using Ogg
 using FileIO
+
+export OpusDecoder, OpusEncoder, load, save
 
 const depfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(depfile)
