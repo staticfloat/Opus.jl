@@ -2,6 +2,8 @@ using Base.Test
 using Opus
 using Ogg
 
+testdir = dirname(@__FILE__)
+
 # First, try roundtripping some signals and ensuring they're reasonably close
 function avg_roundtrip_error(audio; preskip=312)
     fio = IOBuffer()
@@ -23,11 +25,11 @@ filtered_noise = filt([0.018, 0.054, 0.054, 0.018], [1.0, -1.760, 1.182, -0.278]
 # Each signal is harder for Opus to model, so increase the error bounds for each one
 @test avg_roundtrip_error(sin_signal) < .01
 @test avg_roundtrip_error(harmonic_signal) < .02
-@test avg_roundtrip_error(filtered_noise) < .08
+@test avg_roundtrip_error(filtered_noise) < .1
 
 
 # Now perform some tests to ensure that we can decode some Ogg Opus files
-packets = Ogg.load(Pkg.dir("Opus", "test", "4410Hz.opus"))
+packets = Ogg.load(joinpath(testdir, "4410hz.opus"))
 
 serial = 1035355421
 
