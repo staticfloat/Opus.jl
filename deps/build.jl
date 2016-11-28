@@ -5,7 +5,7 @@ using Compat
 
 libopus = library_dependency("libopus", aliases = ["libopus"])
 
-@osx_only begin
+@static if is_apple()
   using Homebrew
   provides( Homebrew.HB, "opus", libopus, os = :Darwin )
 end
