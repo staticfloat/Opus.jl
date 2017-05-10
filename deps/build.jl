@@ -18,7 +18,7 @@ provides( Sources,
           SHA="0e290078e31211baa7b5886bcc8ab6bc048b9fc83882532da4a1a45e58e907fd",
           libopus )
 provides( BuildProcess,
-          Autotools(libtarget=".libs/libopus."*BinDeps.shlib_ext, configure_options = ["--libdir=$(BinDeps.libdir(libopus))"]),
+          Autotools(libtarget=".libs/libopus."*Libdl.dlext, configure_options = ["--libdir=$(BinDeps.libdir(libopus))"]),
           libopus )
 
 @compat @BinDeps.install Dict(:libopus => :libopus)
