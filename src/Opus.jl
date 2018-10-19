@@ -3,7 +3,7 @@ module Opus
 using Compat
 using Ogg
 using FileIO
-import Base: writemime, convert, show, write
+import Base: convert, show, write
 
 export OpusDecoder, OpusEncoder, OpusArray, load, save
 

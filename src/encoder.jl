@@ -1,8 +1,8 @@
 """
 Opaque Encoder struct
 """
-type OpusEncoder  # type not immutable so that finalizer can be applied
-    v::Ptr{Void}
+mutable struct OpusEncoder  # mutable so that finalizer can be applied
+    v::Ptr{Cvoid}
     fs::Int32
     channels::Cint
 
@@ -12,7 +12,7 @@ type OpusEncoder  # type not immutable so that finalizer can be applied
     function OpusEncoder(samplerate, channels; application = OPUS_APPLICATION_AUDIO)
         errorptr = Ref{Cint}(0);
         # Create new encoder object with the given samplerate and channel
-        encptr = ccall((:opus_encoder_create,libopus), Ptr{Void}, (Int32, Cint, Cint, Ref{Cint}), samplerate, channels, application, errorptr)
+        encptr = ccall((:opus_encoder_create,libopus), Ptr{Cvoid}, (Int32, Cint, Cint, Ref{Cint}), samplerate, channels, application, errorptr)
         err = errorptr[]
         enc = new(encptr, samplerate, channels)
         if err != OPUS_OK
@@ -20,7 +20,9 @@ type OpusEncoder  # type not immutable so that finalizer can be applied
         end
 
         # Register finalizer to cleanup this encoder
-        finalizer(enc,x -> ccall((:opus_encoder_destroy,libopus),Void,(Ptr{Void},),x.v))
+        finalizer(enc) do x
+            ccall((:opus_encoder_destroy,libopus),Cvoid,(Ptr{Cvoid},),x.v)
+        end
         return enc
     end
 end
@@ -30,10 +32,10 @@ function encode_frame(enc::OpusEncoder, data::Vector{Float32})
     if !(frame_len in [120, 240, 480, 960, 1920, 2880])
         error("Invalid frame length of $(length(data)/enc.channels) samples")
     end
-    packet = Vector{UInt8}(length(data)*4*enc.channels)
+    packet = Vector{UInt8}(undef, length(data)*4*enc.channels)
 
     #print("opus_encode_float: ")
-    num_bytes = ccall((:opus_encode_float,libopus), Cint, (Ptr{Void}, Ptr{Float32}, Cint, Ptr{UInt8}, Int32),
+    num_bytes = ccall((:opus_encode_float,libopus), Cint, (Ptr{Cvoid}, Ptr{Float32}, Cint, Ptr{UInt8}, Int32),
                         enc.v, data, frame_len, packet, length(packet))
     if num_bytes < 0
         error("opus_encode_float() failed: $(OPUS_ERROR_MESSAGE_STRS[num_bytes])")

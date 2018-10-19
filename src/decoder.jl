@@ -1,8 +1,8 @@
 """
 Opaque Decoder struct
 """
-type OpusDecoder  # type not immutable so that finalizer can be applied
-    v::Ptr{Void}
+mutable struct OpusDecoder  # mutable so that finalizer can be applied
+    v::Ptr{Cvoid}
     fs::Int32
     channels::Cint
 
@@ -12,7 +12,7 @@ type OpusDecoder  # type not immutable so that finalizer can be applied
     function OpusDecoder(samplerate, channels)
         errorptr = Ref{Cint}(0);
         # Create new decoder object with the given samplerate and channel
-        decptr = ccall((:opus_decoder_create,libopus), Ptr{Void}, (Int32, Cint, Ref{Cint}), samplerate, channels, errorptr)
+        decptr = ccall((:opus_decoder_create,libopus), Ptr{Cvoid}, (Int32, Cint, Ref{Cint}), samplerate, channels, errorptr)
         err = errorptr[]
         dec = new(decptr, samplerate, channels)
         if err != OPUS_OK
@@ -20,7 +20,9 @@ type OpusDecoder  # type not immutable so that finalizer can be applied
         end
 
         # Register finalizer to cleanup this decoder
-        finalizer(dec,x -> ccall((:opus_decoder_destroy,libopus),Void,(Ptr{Void},),x.v))
+        finalizer(dec) do x
+            ccall((:opus_decoder_destroy,libopus),Cvoid,(Ptr{Cvoid},),x.v)
+        end
         return dec
     end
 end
@@ -38,7 +40,7 @@ function decode_packet(dec::OpusDecoder, packet::Vector{UInt8})
     output = Vector{Float32}(packet_samples*dec.channels)
 
     #print("opus_decode_float: ")
-    num_samples = ccall((:opus_decode_float,libopus), Cint, (Ptr{Void}, Ptr{UInt8}, Int32, Ptr{Float32}, Cint, Cint),
+    num_samples = ccall((:opus_decode_float,libopus), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Int32, Ptr{Float32}, Cint, Cint),
                         dec.v, packet, length(packet), output, packet_samples*dec.channels, 0)
     if num_samples < 0
         error("opus_decode_float() failed: $(OPUS_ERROR_MESSAGE_STRS[num_samples])")

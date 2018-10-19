@@ -1,6 +1,8 @@
-using Base.Test
+using Compat
+using Compat.Test
 using Opus
 using Ogg
+using DSP
 
 testdir = dirname(@__FILE__)
 
@@ -17,9 +19,9 @@ function avg_roundtrip_error(audio; preskip=312)
 end
 
 # We'll construct "one second" of signal
-t = linspace(0,1,48000)
-sin_signal = sin(2*π*440*t)
-harmonic_signal = sum([.1*k^-1.5*sin(2*π*440*k*t) for k in 1:.1:4])
+t = range(0,stop=1,length=48000)
+sin_signal = sin.(2*π*440*t)
+harmonic_signal = sum([.1*k^-1.5*sin.(2*π*440*k*t) for k in 1:.1:4])
 filtered_noise = filt([0.018, 0.054, 0.054, 0.018], [1.0, -1.760, 1.182, -0.278], randn(1000))
 
 # Each signal is harder for Opus to model, so increase the error bounds for each one
