@@ -97,7 +97,7 @@ function read_opus_tag(io::IO)
     len = read(io, UInt32)
 
     # Next, read the string
-    return bytestring(read(io, len))
+    return String(read(io, len))
 end
 
 function write_opus_tag(io::IO, tag::AbstractString)
@@ -157,7 +157,7 @@ end
 function is_header_packet(packet::Vector{UInt8})
     # Check if it's an OpusHead or OpusTags packet
     if length(packet) > 8
-        magic = bytestring(packet[1:8])
+        magic = String(packet[1:8])
         if magic == "OpusHead" || magic == "OpusTags"
             return true
         end

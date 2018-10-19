@@ -8,7 +8,7 @@ mutable struct OpusArray
 end
 
 function Base.show(io::IO, ::MIME"text/html", x::OpusArray)
-    data = base64encode(bytestring(x.encoded_stream))
+    data = base64encode(String(x.encoded_stream))
     markup = """<audio controls="controls" {autoplay}>
                 <source src="data:audio/ogg;base64,$data" type="audio/ogg" />
                 Your browser does not support the audio element.

@@ -37,7 +37,7 @@ end
 
 function decode_packet(dec::OpusDecoder, packet::Vector{UInt8})
     packet_samples = get_nb_samples(packet, dec.fs)
-    output = Vector{Float32}(packet_samples*dec.channels)
+    output = Vector{Float32}(undef, packet_samples*dec.channels)
 
     #print("opus_decode_float: ")
     num_samples = ccall((:opus_decode_float,libopus), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Int32, Ptr{Float32}, Cint, Cint),
@@ -63,7 +63,7 @@ function decode_all_packets(dec::OpusDecoder, packets::Vector{Vector{UInt8}})
     packet_lens = vcat(zeros(Int32, start_idx - 1), packet_lens)
 
     # Allocate output now that we know the length of all our audio
-    output = Vector{Float32}(sum(packet_lens))
+    output = Vector{Float32}(undef, sum(packet_lens))
 
     # Decode each packet into its corresponding chunk of output
     out_idx = 1
@@ -92,6 +92,8 @@ function load(fio::IO)
             # Find the first stream that is Opus and decode it
             opus_head = OpusHead(packets[serial][1])
             opus_tags = OpusTags(packets[serial][2])
+        # TODO: throw a more specific exception. Catching all exceptions here
+        # makes things hard to debug if there's a problem (or Julia syntax changes) 
         catch
             continue
         end

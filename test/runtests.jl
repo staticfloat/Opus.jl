@@ -3,6 +3,7 @@ using Compat.Test
 using Opus
 using Ogg
 using DSP
+using FFTW
 
 testdir = dirname(@__FILE__)
 
@@ -14,7 +15,7 @@ function avg_roundtrip_error(audio; preskip=312)
     audio_dec = Opus.load(fio)[1]
 
     N = length(audio) - preskip
-    avg_error = sum(abs(audio_dec[preskip+1:min(end,length(audio))] - audio[1:end-preskip]))/N
+    avg_error = sum(abs.(audio_dec[preskip+1:min(end,length(audio))] - audio[1:end-preskip]))/N
     return avg_error
 end
 
@@ -52,5 +53,5 @@ audio = Opus.decode_all_packets(opus_dec, packets[serial])
 @test length(audio) == 960
 
 # Make sure the frequency we recover is within 10 Hz of what we expect
-audio_freq = (indmax(abs(fft(audio)[1:div(end,2)])) - 1)*48000/length(audio)
+audio_freq = (argmax(abs.(fft(audio)[1:div(end,2)])) - 1)*48000/length(audio)
 @test abs(audio_freq - 4410) <= 10
