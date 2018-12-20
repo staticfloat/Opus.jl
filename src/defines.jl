@@ -23,7 +23,7 @@ const OPUS_APPLICATION_VOIP                = 2048
 const OPUS_APPLICATION_AUDIO               = 2049
 const OPUS_APPLICATION_RESTRICTED_LOWDELAY = 2051
 
-immutable OpusHead
+struct OpusHead
     # Magic bytes "OpusHead" (0x646165487375704f)
     opus_head::UInt64
     # Should always be equal to one
@@ -75,7 +75,7 @@ function convert(::Type{Vector{UInt8}}, x::OpusHead)
     io = IOBuffer()
     write(io, x)
     seekstart(io)
-    return readbytes(io)
+    return read(io)
 end
 
 function show(io::IO, x::OpusHead)
@@ -83,7 +83,7 @@ function show(io::IO, x::OpusHead)
 end
 
 
-type OpusTags
+mutable struct OpusTags
     # Magic signature "OpusTags" (0x736761547375704f)
     opus_tags::UInt64
 
@@ -97,7 +97,7 @@ function read_opus_tag(io::IO)
     len = read(io, UInt32)
 
     # Next, read the string
-    return bytestring(readbytes(io, len))
+    return String(read(io, len))
 end
 
 function write_opus_tag(io::IO, tag::AbstractString)
@@ -140,7 +140,7 @@ function convert(::Type{Vector{UInt8}}, x::OpusTags)
     io = IOBuffer()
     write(io, x)
     seekstart(io)
-    return readbytes(io)
+    return read(io)
 end
 
 function show(io::IO, x::OpusTags)
@@ -157,7 +157,7 @@ end
 function is_header_packet(packet::Vector{UInt8})
     # Check if it's an OpusHead or OpusTags packet
     if length(packet) > 8
-        magic = bytestring(packet[1:8])
+        magic = String(packet[1:8])
         if magic == "OpusHead" || magic == "OpusTags"
             return true
         end

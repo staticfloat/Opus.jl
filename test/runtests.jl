@@ -1,6 +1,9 @@
-using Base.Test
+using Compat
+using Compat.Test
 using Opus
 using Ogg
+using DSP
+using FFTW
 
 testdir = dirname(@__FILE__)
 
@@ -12,14 +15,14 @@ function avg_roundtrip_error(audio; preskip=312)
     audio_dec = Opus.load(fio)[1]
 
     N = length(audio) - preskip
-    avg_error = sum(abs(audio_dec[preskip+1:min(end,length(audio))] - audio[1:end-preskip]))/N
+    avg_error = sum(abs.(audio_dec[preskip+1:min(end,length(audio))] - audio[1:end-preskip]))/N
     return avg_error
 end
 
 # We'll construct "one second" of signal
-t = linspace(0,1,48000)
-sin_signal = sin(2*π*440*t)
-harmonic_signal = sum([.1*k^-1.5*sin(2*π*440*k*t) for k in 1:.1:4])
+t = range(0,stop=1,length=48000)
+sin_signal = sin.(2*π*440*t)
+harmonic_signal = sum([.1*k^-1.5*sin.(2*π*440*k*t) for k in 1:.1:4])
 filtered_noise = filt([0.018, 0.054, 0.054, 0.018], [1.0, -1.760, 1.182, -0.278], randn(1000))
 
 # Each signal is harder for Opus to model, so increase the error bounds for each one
@@ -50,5 +53,5 @@ audio = Opus.decode_all_packets(opus_dec, packets[serial])
 @test length(audio) == 960
 
 # Make sure the frequency we recover is within 10 Hz of what we expect
-audio_freq = (indmax(abs(fft(audio)[1:div(end,2)])) - 1)*48000/length(audio)
+audio_freq = (argmax(abs.(fft(audio)[1:div(end,2)])) - 1)*48000/length(audio)
 @test abs(audio_freq - 4410) <= 10

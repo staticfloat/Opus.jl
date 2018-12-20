@@ -1,6 +1,12 @@
 using BinDeps
 using Compat
 
+if isdefined((@static VERSION < v"0.7.0-DEV.484" ? current_module() : @__MODULE__), :Compat)
+    import Compat.Libdl
+elseif VERSION >= v"0.7.0-DEV.3382"
+    import Libdl
+end
+
 @BinDeps.setup
 
 libopus = library_dependency("libopus", aliases = ["libopus"])

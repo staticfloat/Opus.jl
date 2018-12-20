@@ -1,2 +1,3 @@
 .DS_Store
 deps/deps.jl
+deps/build.log
