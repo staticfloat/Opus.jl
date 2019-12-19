@@ -1,9 +1,4 @@
-using Compat
-using Compat.Test
-using Opus
-using Ogg
-using DSP
-using FFTW
+using Test, Opus, Ogg, DSP, FFTW
 
 testdir = dirname(@__FILE__)
 
