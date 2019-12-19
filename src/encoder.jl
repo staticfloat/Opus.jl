@@ -90,7 +90,7 @@ function save(output::Union{File{format"OPUS"},AbstractString,IO}, audio::Array{
     insert!(packets, 1, opus_head)
     opus_tags = OpusTags()
     insert!(packets, 2, opus_tags)
-    Ogg.save(output, packets, granulepos)
+    Ogg.save(output, packets, Int64.(granulepos))
 end
 
 function save(output::Union{File{format"OPUS"},AbstractString,IO}, audio::Array, fs; chunksize=960)
