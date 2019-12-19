@@ -1,9 +1,4 @@
-using Compat
-using Compat.Test
-using Opus
-using Ogg
-using DSP
-using FFTW
+using Test, Opus, Ogg, DSP, FFTW
 
 testdir = dirname(@__FILE__)
 
@@ -28,7 +23,7 @@ filtered_noise = filt([0.018, 0.054, 0.054, 0.018], [1.0, -1.760, 1.182, -0.278]
 # Each signal is harder for Opus to model, so increase the error bounds for each one
 @test avg_roundtrip_error(sin_signal) < .01
 @test avg_roundtrip_error(harmonic_signal) < .02
-@test avg_roundtrip_error(filtered_noise) < .1
+@test avg_roundtrip_error(filtered_noise) < .3
 
 
 # Now perform some tests to ensure that we can decode some Ogg Opus files
