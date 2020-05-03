@@ -9,7 +9,7 @@ mutable struct OpusEncoder  # mutable so that finalizer can be applied
     """
     Create new OpusEncoder object with given samplerate and channels
     """
-    function OpusEncoder(samplerate, channels; application = OPUS_APPLICATION_AUDIO)
+    function OpusEncoder(samplerate, channels; application = OPUS_APPLICATION_AUDIO, packetloss_pct = 0)
         errorptr = Ref{Cint}(0);
         # Create new encoder object with the given samplerate and channel
         encptr = ccall((:opus_encoder_create,libopus), Ptr{Cvoid}, (Int32, Cint, Cint, Ref{Cint}), samplerate, channels, application, errorptr)
@@ -19,6 +19,11 @@ mutable struct OpusEncoder  # mutable so that finalizer can be applied
             error("opus_encoder_create() failed: $(OPUS_ERROR_MESSAGE_STRS[err])")
         end
 
+		if packetloss_pct > 0
+			opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC, Cint(packetloss_pct))
+			opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC, Cint(1))
+		end
+
         # Register finalizer to cleanup this encoder
         finalizer(enc) do x
             ccall((:opus_encoder_destroy,libopus),Cvoid,(Ptr{Cvoid},),x.v)
@@ -27,14 +32,28 @@ mutable struct OpusEncoder  # mutable so that finalizer can be applied
     end
 end
 
-function encode_frame(enc::OpusEncoder, data::Vector{Float32})
+function opus_encoder_ctl(enc::OpusEncoder, request::Cint, arg::Cint)
+    ret = ccall((:opus_encoder_ctl,libopus), Cint, (Ptr{Cvoid}, Cint, Cint...),
+                                                    enc.v, request, arg)
+    if ret != OPUS_OK
+        error("opus_encoder_ctl() failed: $(OPUS_ERROR_MESSAGE_STRS[ret])")
+    end
+end
+
+
+# Compat shim
+function encode_frame(args...; kwargs...)
+    @warn("encode_frame() is deprecated, use encode_packet() instead!")
+    encode_packet(args...; kwargs...)
+end
+
+function encode_packet(enc::OpusEncoder, data::Vector{Float32})
     frame_len = div(length(data),enc.channels)
     if !(frame_len in [120, 240, 480, 960, 1920, 2880])
-        error("Invalid frame length of $(length(data)/enc.channels) samples")
+        error("Invalid packet length of $(length(data)/enc.channels) samples")
     end
     packet = Vector{UInt8}(undef, length(data)*4*enc.channels)
 
-    #print("opus_encode_float: ")
     num_bytes = ccall((:opus_encode_float,libopus), Cint, (Ptr{Cvoid}, Ptr{Float32}, Cint, Ptr{UInt8}, Int32),
                         enc.v, data, frame_len, packet, length(packet))
     if num_bytes < 0
@@ -44,7 +63,11 @@ function encode_frame(enc::OpusEncoder, data::Vector{Float32})
 end
 
 """
-Array goes in, packets of bytes come out
+    encode(enc::OpusEncoder, audio::Array{Float32}; chunksize=960)
+
+Given an array of Float32 PCM samples, consumes the audio in chunks of
+size `chunksize`, generating a list of Opus packets returned as a
+`Vector{Vector{UInt8}}`.
 """
 function encode(enc::OpusEncoder, audio::Array{Float32}; chunksize=960)
     if size(audio, 2) != enc.channels
@@ -60,7 +83,7 @@ function encode(enc::OpusEncoder, audio::Array{Float32}; chunksize=960)
     # Split audio up into chunks of size chunksize
     for chunk_idx in 1:div(length(audio),enc.channels*chunksize)
         chunk = audio[(chunk_idx-1)*chunksize*enc.channels + 1:chunk_idx*chunksize*enc.channels]
-        encoded_chunk = encode_frame(enc, chunk)
+        encoded_chunk = encode_packet(enc, chunk)
         push!(packets, encoded_chunk)
     end
 
@@ -69,7 +92,7 @@ function encode(enc::OpusEncoder, audio::Array{Float32}; chunksize=960)
     if leftover_samples != 0
         chunk = audio[length(audio) - leftover_samples*enc.channels + 1:length(audio)]
         chunk = vcat(chunk, zeros(Float32, chunksize - leftover_samples))
-        encoded_chunk = encode_frame(enc, chunk)
+        encoded_chunk = encode_packet(enc, chunk)
         push!(packets, encoded_chunk)
     end
     return packets

@@ -23,6 +23,50 @@ const OPUS_APPLICATION_VOIP                = 2048
 const OPUS_APPLICATION_AUDIO               = 2049
 const OPUS_APPLICATION_RESTRICTED_LOWDELAY = 2051
 
+# Opus CTLs
+const OPUS_SET_APPLICATION         = Cint(4000)
+const OPUS_GET_APPLICATION         = Cint(4001)
+const OPUS_SET_BITRATE             = Cint(4002)
+const OPUS_GET_BITRATE             = Cint(4003)
+const OPUS_SET_MAX_BANDWIDTH       = Cint(4004)
+const OPUS_GET_MAX_BANDWIDTH       = Cint(4005)
+const OPUS_SET_VBR                 = Cint(4006)
+const OPUS_GET_VBR                 = Cint(4007)
+const OPUS_SET_BANDWIDTH           = Cint(4008)
+const OPUS_GET_BANDWIDTH           = Cint(4009)
+const OPUS_SET_COMPLEXITY          = Cint(4010)
+const OPUS_GET_COMPLEXITY          = Cint(4011)
+const OPUS_SET_INBAND_FEC          = Cint(4012)
+const OPUS_GET_INBAND_FEC          = Cint(4013)
+const OPUS_SET_PACKET_LOSS_PERC    = Cint(4014)
+const OPUS_GET_PACKET_LOSS_PERC    = Cint(4015)
+const OPUS_SET_DTX                 = Cint(4016)
+const OPUS_GET_DTX                 = Cint(4017)
+const OPUS_SET_VBR_CONSTRAINT      = Cint(4020)
+const OPUS_GET_VBR_CONSTRAINT      = Cint(4021)
+const OPUS_SET_FORCE_CHANNELS      = Cint(4022)
+const OPUS_GET_FORCE_CHANNELS      = Cint(4023)
+const OPUS_SET_SIGNAL              = Cint(4024)
+const OPUS_GET_SIGNAL              = Cint(4025)
+const OPUS_GET_LOOKAHEAD           = Cint(4027)
+# const OPUS_RESET_STATE 4028 (not defined for some reason)
+const OPUS_GET_SAMPLE_RATE         = Cint(4029)
+const OPUS_GET_FINAL_RANGE         = Cint(4031)
+const OPUS_GET_PITCH               = Cint(4033)
+const OPUS_SET_GAIN                = Cint(4034)
+const OPUS_GET_GAIN                = Cint(4045) # Should have been 4035
+const OPUS_SET_LSB_DEPTH           = Cint(4036)
+const OPUS_GET_LSB_DEPTH           = Cint(4037)
+const OPUS_GET_LAST_PACKET_DURATION = Cint(4039)
+const OPUS_SET_EXPERT_FRAME_DURATION = Cint(4040)
+const OPUS_GET_EXPERT_FRAME_DURATION = Cint(4041)
+const OPUS_SET_PREDICTION_DISABLED = Cint(4042)
+const OPUS_GET_PREDICTION_DISABLED = Cint(4043)
+# Don't use 4045, it's already taken by OPUS_GET_GAIN
+const OPUS_SET_PHASE_INVERSION_DISABLED = Cint(4046)
+const OPUS_GET_PHASE_INVERSION_DISABLED = Cint(4047)
+const OPUS_GET_IN_DTX              = Cint(4049)
+
 struct OpusHead
     # Magic bytes "OpusHead" (0x646165487375704f)
     opus_head::UInt64

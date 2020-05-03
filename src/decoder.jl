@@ -35,13 +35,12 @@ function get_nb_samples(data, fs)
     return num_samples
 end
 
-function decode_packet(dec::OpusDecoder, packet::Vector{UInt8})
+function decode_packet(dec::OpusDecoder, packet::Vector{UInt8}; fec::Bool=false)
     packet_samples = get_nb_samples(packet, dec.fs)
     output = Vector{Float32}(undef, packet_samples*dec.channels)
 
-    #print("opus_decode_float: ")
     num_samples = ccall((:opus_decode_float,libopus), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Int32, Ptr{Float32}, Cint, Cint),
-                        dec.v, packet, length(packet), output, packet_samples*dec.channels, 0)
+                        dec.v, packet, length(packet), output, packet_samples*dec.channels, Cint(fec))
     if num_samples < 0
         error("opus_decode_float() failed: $(OPUS_ERROR_MESSAGE_STRS[num_samples])")
     end
