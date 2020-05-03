@@ -9,7 +9,7 @@ mutable struct OpusEncoder  # mutable so that finalizer can be applied
     """
     Create new OpusEncoder object with given samplerate and channels
     """
-    function OpusEncoder(samplerate, channels; application = OPUS_APPLICATION_AUDIO, packetloss_pct = 0)
+    function OpusEncoder(samplerate, channels; application = OPUS_APPLICATION_AUDIO, packetloss_pct::Union{Int32,Int64} = 0, bitrate::Union{Nothing,Int32,Int64} = nothing)
         errorptr = Ref{Cint}(0);
         # Create new encoder object with the given samplerate and channel
         encptr = ccall((:opus_encoder_create,libopus), Ptr{Cvoid}, (Int32, Cint, Cint, Ref{Cint}), samplerate, channels, application, errorptr)
@@ -22,7 +22,11 @@ mutable struct OpusEncoder  # mutable so that finalizer can be applied
 		if packetloss_pct > 0
 			opus_encoder_ctl(enc, OPUS_SET_PACKET_LOSS_PERC, Cint(packetloss_pct))
 			opus_encoder_ctl(enc, OPUS_SET_INBAND_FEC, Cint(1))
-		end
+        end
+        
+        if bitrate != nothing
+            opus_encoder_ctl(enc, OPUS_SET_BITRATE, Cint(bitrate))
+        end
 
         # Register finalizer to cleanup this encoder
         finalizer(enc) do x

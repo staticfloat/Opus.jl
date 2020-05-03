@@ -54,3 +54,20 @@ end
     audio_freq = (argmax(abs.(fft(audio)[1:div(end,2)])) - 1)*48000/length(audio)
     @test abs(audio_freq - 4410) <= 10
 end
+
+@testset "encoder options" begin
+    # Create an encoder, generate some packets:
+    num_packets = 5
+    packet_len = 480
+    fs = 48000
+    t = (1:(num_packets*packet_len))/fs
+    sin_signal = Float32.(sin.(2*π*440*t))
+
+    enc = OpusEncoder(fs, 1; packetloss_pct=1, bitrate=128000)
+    true_data = Vector{Float32}[]
+    packets = Any[]
+    for packet_idx in 1:num_packets
+        push!(true_data, sin_signal[(packet_idx-1)*packet_len+1:packet_idx*packet_len])
+        push!(packets, Opus.encode_packet(enc, true_data[packet_idx]))
+    end
+end
